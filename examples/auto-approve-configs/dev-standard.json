@@ -1,0 +1,42 @@
+{
+  "_comment": "Standard dev config — for coding agents that can edit files and run builds",
+  "allow": [
+    "npm *",
+    "npx *",
+    "node *",
+    "git add *",
+    "git commit *",
+    "git checkout *",
+    "git branch *",
+    "git diff *",
+    "git log *",
+    "git status",
+    "cat *",
+    "ls *",
+    "grep *",
+    "find *",
+    "head *",
+    "tail *",
+    "wc *",
+    "echo *",
+    "mkdir *",
+    "cp *",
+    "mv *",
+    "python3 *",
+    "pytest *",
+    "pip list *"
+  ],
+  "deny": [
+    "rm -rf /",
+    "rm -rf ~",
+    "sudo *",
+    "chmod 777 *",
+    "git push *",
+    "git force-push *",
+    "curl * | bash",
+    "wget * | bash",
+    "pip install *",
+    "npm install -g *"
+  ],
+  "allowRedirects": true
+}

@@ -35,6 +35,8 @@ Ran a **4-agent parallel security audit** on a production project (FastAPI + Nex
 
 **Total cost: $0.00** (free model via Cline OAuth)
 
+**👉 [QUICKSTART.md](QUICKSTART.md) — Get running in 5 minutes**
+
 ## What is this?
 
 This skill teaches an OpenClaw bot to delegate coding tasks to **Cline CLI 2.0** sub-agents running in headless mode. Each sub-agent is sandboxed to a specific project directory with scoped permissions.

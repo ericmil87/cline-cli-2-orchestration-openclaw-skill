@@ -3,19 +3,23 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.3] - 2026-02-25
+
+### Added
+- `QUICKSTART.md` — 5-minute getting started guide
+- `examples/clinerules-templates/.clinerules-security-audit` — Rules for audit agents (read-only, report format)
+- `examples/auto-approve-configs/safe-readonly.json` — Locked-down permissions for audit/review agents
+- `examples/auto-approve-configs/dev-standard.json` — Standard dev permissions (edit + build, no push)
+- `examples/auto-approve-configs/ci-full.json` — Broader CI/CD permissions (includes push and docker)
+
+### Changed
+- `README.md` — Added quickstart link
+
 ## [0.3.2] - 2026-02-25
 
 ### Changed
-- `reports/how-it-was-built.md` — Enhanced with:
-  - Mermaid architecture diagram (renders on GitHub)
-  - Status badges (cost, agents, findings, output)
-  - Industry context section (benchmarks, orchestration patterns, economics)
-  - Comparison with Blueprint2Code and CLEAR benchmarks
-  - Expanded conclusion with key insights and metrics table
-- `README.md` — Enhanced with:
-  - Mermaid architecture diagram
-  - Additional badges (cost, agents, version)
-  - Cleaner sub-agent description
+- `reports/how-it-was-built.md` — Enhanced with mermaid diagrams, badges, industry context, benchmarks
+- `README.md` — Enhanced with mermaid diagram and additional badges
 
 ## [0.3.1] - 2026-02-25
 

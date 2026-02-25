@@ -1,0 +1,65 @@
+# .github/workflows/cline-test-fix.yml
+# When tests fail in CI, automatically attempt to fix them with Cline
+#
+# Triggered manually or when a test workflow fails
+
+name: Cline Auto-Fix Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to fix'
+        required: true
+        default: 'main'
+  workflow_run:
+    workflows: ["Tests"]  # Name of your test workflow
+    types: [completed]
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event_name == 'workflow_dispatch' }}
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Cline CLI
+        run: npm install -g cline
+
+      - name: Configure Cline
+        run: cline auth -p openrouter -k ${{ secrets.OPENROUTER_API_KEY }} -m kwaipilot/kat-coder-pro
+
+      - name: Detect Project Type & Run Fix
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci
+            cline -y "Run 'npm test'. Analyze failures. Fix the code. Re-run tests until passing. Do NOT modify test files unless they have bugs." --timeout 600
+          elif [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+            cline -y "Run 'pytest'. Analyze failures. Fix the code. Re-run tests until passing. Do NOT modify test files unless they have bugs." --timeout 600
+          fi
+
+      - name: Create Fix PR
+        if: success()
+        run: |
+          BRANCH="fix/auto-test-fix-$(date +%s)"
+          git checkout -b "$BRANCH"
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "fix: auto-fix failing tests (Cline CLI)"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "🤖 Auto-fix: Failing tests" \
+            --body "Automated test fix by Cline CLI 2.0. Please review before merging." \
+            --base main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

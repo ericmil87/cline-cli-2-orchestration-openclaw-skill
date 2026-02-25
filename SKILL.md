@@ -371,6 +371,26 @@ You (to user):
 }
 ```
 
+### .clinerules — Per-Project Agent Instructions
+
+Create `.clinerules` at the project root to give agents project-specific context:
+```
+# .clinerules
+- Use TypeScript for all new files
+- Tests go in __tests__/ directory
+- Follow conventional commits
+```
+
+This is appended to the agent's system prompt — use it for coding conventions,
+architecture decisions, or project-specific constraints.
+
+Templates available in `examples/clinerules-templates/`.
+
+### MCP Tools — Extended Capabilities
+
+Sub-agents can use MCP (Model Context Protocol) tools for web search, API access, etc.
+See `references/mcp-integration.md` for setup guide.
+
 ### Troubleshooting
 
 | Problem | Solution |

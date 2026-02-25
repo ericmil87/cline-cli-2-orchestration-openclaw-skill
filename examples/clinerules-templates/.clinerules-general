@@ -1,0 +1,24 @@
+# General Project Rules
+# Copy this to your project root as .clinerules
+
+## Workflow
+- Always create a branch before making changes
+- Run existing tests before and after changes
+- Commit with descriptive messages: type(scope): description
+
+## Code Quality
+- Write self-documenting code — avoid unnecessary comments
+- Handle errors explicitly — never silently catch exceptions
+- Keep functions small and focused (< 50 lines)
+- DRY: Don't Repeat Yourself
+
+## Security
+- Never hardcode secrets, API keys, or passwords
+- Use environment variables for configuration
+- Validate all external input
+- Follow least-privilege principle
+
+## Documentation
+- Update README when adding features
+- Document non-obvious decisions with comments
+- Keep API docs in sync with code changes

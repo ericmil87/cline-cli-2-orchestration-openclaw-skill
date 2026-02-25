@@ -3,10 +3,23 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.2] - 2026-02-25
+
+### Changed
+- `reports/how-it-was-built.md` — Enhanced with:
+  - Mermaid architecture diagram (renders on GitHub)
+  - Status badges (cost, agents, findings, output)
+  - Industry context section (benchmarks, orchestration patterns, economics)
+  - Comparison with Blueprint2Code and CLEAR benchmarks
+  - Expanded conclusion with key insights and metrics table
+- `README.md` — Enhanced with:
+  - Mermaid architecture diagram
+  - Additional badges (cost, agents, version)
+  - Cleaner sub-agent description
+
 ## [0.3.1] - 2026-02-25
 
 ### Added
-- `CHANGELOG.md` — Comprehensive changelog covering all releases (v0.1.0 → v0.3.0)
 - `reports/how-it-was-built.md` — Technical report on how this project was built (LLMs, tools, architecture, costs)
 
 ### Changed

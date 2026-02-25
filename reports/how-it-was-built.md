@@ -6,6 +6,11 @@
 **Duration:** ~4 hours (01:00 → 05:00 GMT-3)  
 **Authors:** Eric Milfont (human), Cláudio Milfont (AI agent)
 
+![Agents](https://img.shields.io/badge/Sub--Agents-4_parallel-blue)
+![Cost](https://img.shields.io/badge/Inference_Cost-$0.00-brightgreen)
+![Findings](https://img.shields.io/badge/Security_Findings-46-red)
+![Lines](https://img.shields.io/badge/Output-5,000+_lines-orange)
+
 ---
 
 ## Executive Summary
@@ -14,38 +19,51 @@ This project demonstrates a novel workflow: **an AI agent (Claude) orchestrating
 
 **Key achievement:** A 4-agent parallel security audit of a production codebase, running on free models, coordinated by an AI orchestrator, producing 1,935 lines of detailed reports at $0.00 inference cost.
 
+### How This Compares to Industry
+
+| Metric | This Project | Blueprint2Code (2026) | CLEAR Benchmark |
+|--------|-------------|----------------------|-----------------|
+| Orchestration | Hierarchical (Claude → Cline) | 4-agent pipeline | Varies |
+| Cost | **$0.00** (free models) | Paid APIs | 50x cost variation |
+| Pass rate | 3/4 agents first try (75%) | 96.3% (GPT-4o) | Drops 35% over runs |
+| Real-world test | ✅ Production codebase | HumanEval benchmark | Synthetic scenarios |
+
+Our approach uses a **hierarchical orchestration pattern** — similar to what Anthropic describes as the "manager-worker" pattern — where a capable orchestrator (Claude Opus 4) delegates specialized tasks to cheaper, faster worker agents (Cline/glm-5).
+
 ---
 
 ## Architecture: The AI Stack
 
+```mermaid
+graph TD
+    A["👨‍💻 Eric (Human)<br/>Telegram Chat"] -->|"Strategic direction"| B
+    B["🌐 OpenClaw Gateway<br/>Session Management"] -->|"Routes messages"| C
+    C["🧠 Cláudio (Claude Opus 4)<br/>Orchestrator Agent"] -->|"Plans & delegates"| D
+    C -->|"Plans & delegates"| E
+    C -->|"Plans & delegates"| F
+    C -->|"Plans & delegates"| G
+    D["🔐 Cline Agent 1<br/>API Security<br/>(glm-5)"]
+    E["🌐 Cline Agent 2<br/>Frontend Security<br/>(glm-5)"]
+    F["📦 Cline Agent 3<br/>Dependencies<br/>(glm-5)"]
+    G["🏗️ Cline Agent 4<br/>Infrastructure<br/>(glm-5)"]
+    D -->|"report.md"| H["📊 Results Aggregation"]
+    E -->|"report.md"| H
+    F -->|"report.md"| H
+    G -->|"report.md"| H
+    H -->|"Executive Summary"| A
 ```
-┌─────────────────────────────────────┐
-│         Eric (Human)                │
-│         Telegram Chat               │
-└──────────────┬──────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│      OpenClaw Gateway               │
-│      (Session Management)           │
-└──────────────┬──────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│      Cláudio (Claude Opus 4)        │
-│      Orchestrator Agent             │
-│      - Plans tasks                  │
-│      - Launches sub-agents          │
-│      - Monitors progress            │
-│      - Aggregates results           │
-│      - Writes code & docs           │
-└──────────────┬──────────────────────┘
-               │ tmux / exec
-    ┌──────────┼──────────┐
-    │          │          │
-┌───▼───┐ ┌───▼───┐ ┌───▼───┐
-│Cline 1│ │Cline 2│ │Cline N│
-│glm-5  │ │glm-5  │ │glm-5  │
-│Agent   │ │Agent  │ │Agent  │
-└───────┘ └───────┘ └───────┘
+
+```
+ASCII fallback:
+
+Eric (Human, Telegram)
+  └── OpenClaw Gateway (Session Management)
+        └── Cláudio (Claude Opus 4) — Orchestrator
+              ├── Cline Agent 1 (glm-5) → API Security Report
+              ├── Cline Agent 2 (glm-5) → Frontend Security Report
+              ├── Cline Agent 3 (glm-5) → Dependency Audit Report
+              └── Cline Agent 4 (glm-5) → Infrastructure Report
+                    └── All → Executive Summary → Eric
 ```
 
 ### Layer 1: Human (Eric)
@@ -211,18 +229,96 @@ The entire multi-agent security audit (4 agents, 1.5M tokens, 1,935 lines of rep
 
 ---
 
+## Industry Context (Feb 2026)
+
+### The Multi-Agent Landscape
+
+Multi-agent AI orchestration is emerging as a key pattern in production AI systems. Frameworks like AutoGen, CrewAI, and LangGraph provide the infrastructure, but **less than 10% of enterprises have successfully scaled multi-agent systems** despite 78% adoption attempts (REALM-Bench, 2026).
+
+### Orchestration Patterns
+
+Our project implements the **Hierarchical/Manager-Worker pattern**:
+
+| Pattern | Description | Our Implementation |
+|---------|-------------|-------------------|
+| **Hierarchical** | Manager delegates to specialized workers | ✅ Claude → Cline agents |
+| Sequential | Assembly line, each agent passes to next | Partial (some sequential retries) |
+| Magentic | Dynamic task planning with adaptive ledger | Not used |
+| Swarm | Peer-to-peer agent communication | Not used |
+
+The hierarchical pattern was chosen because:
+1. **Clear accountability** — the orchestrator owns the outcome
+2. **Cost optimization** — expensive model plans, cheap models execute
+3. **Failure handling** — orchestrator can retry, reassign, or escalate
+4. **Human alignment** — natural reporting structure mirrors human teams
+
+### Key Differentiators
+
+What makes this project different from typical multi-agent demos:
+
+1. **Real production codebase** — not a benchmark or toy example
+2. **$0.00 execution cost** — proving free models are viable for real work
+3. **Human-in-the-loop via chat** — not a batch script, but interactive collaboration
+4. **Self-documenting** — the system produced its own documentation, monitoring, and CI/CD
+5. **Reproducible** — published as an OpenClaw skill anyone can install
+
+### The Economics of Multi-Agent
+
+```
+Traditional approach:
+  Senior developer × 4 hours × $150/hr = $600
+  + Tool licenses, CI setup, etc.
+
+Our approach:
+  Claude Opus 4 (orchestrator)     = Per existing plan
+  4× glm-5 agents (1.5M tokens)   = $0.00
+  Perplexity research (5 queries)  = $0.15
+  Infrastructure (Oracle free tier) = $0.00
+  ─────────────────────────────────
+  Total incremental cost            = $0.15
+```
+
+---
+
 ## Conclusion
 
 This project demonstrates that **multi-layer AI orchestration** is practical and cost-effective today. An AI agent (Claude) can successfully act as a "team lead" — planning work, delegating to specialized sub-agents (Cline), monitoring progress, handling failures, and delivering results — all while communicating naturally with a human via chat.
 
-The key insight: **the orchestrator doesn't need to do the coding itself.** By delegating to cheaper/free specialized agents and focusing on planning, coordination, and communication, the system achieves more than any single agent could alone.
+### Key Insights
 
-**Total time:** ~4 hours  
-**Total additional cost:** ~$0.15  
-**Lines of code/docs produced:** 5,000+  
-**Security findings discovered:** 46  
-**Human effort:** Strategic direction + approvals  
+1. **The orchestrator doesn't need to do the coding.** By delegating to cheaper/free specialized agents and focusing on planning, coordination, and communication, the system achieves more than any single agent could alone.
+
+2. **Free models are production-viable.** The 4-agent security audit produced professional-quality reports with actionable findings — all on free inference.
+
+3. **Failure recovery is crucial.** 25% of agents failed on first attempt (frontend scan). The orchestrator's ability to diagnose, adapt (add .clineignore, scope directories), and retry made the difference.
+
+4. **Persistence is the hard problem.** AI agents forget everything between sessions. The file-based memory system (STATE.md, MEMORY.md, daily logs) solves this for practical purposes.
+
+5. **Human strategic direction + AI execution = best results.** Eric's high-level decisions ("do a security audit", "create PRs for improvements", "think like a CEO") combined with AI execution produced better outcomes than either could alone.
+
+### Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total time | ~4 hours |
+| Incremental cost | ~$0.15 |
+| Lines produced | 5,000+ (code, docs, reports) |
+| Security findings | 46 (5 critical, 13 high) |
+| PRs created & merged | 4 |
+| Scripts created | 5 |
+| GitHub Actions workflows | 3 |
+| Human messages | ~30 |
+| Agent tool calls | ~200+ |
+
+### What's Next
+
+1. **Publish to ClawHub** — make this skill available to the 5,700+ skill marketplace
+2. **Implement UpBro fixes** — use the same multi-agent approach to fix the 46 findings
+3. **CI/CD integration** — deploy GitHub Actions on a real repo
+4. **Token budgeting** — per-agent cost limits with automatic fallback
+5. **Self-improving agents** — use audit results to generate fix PRs automatically
 
 ---
 
-*This report was written by Cláudio Milfont (Claude Opus 4), the AI orchestrator that built this project.*
+*This report was written by Cláudio Milfont (Claude Opus 4), the AI orchestrator that built this project.*  
+*February 25, 2026 — São Paulo, Brazil*

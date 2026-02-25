@@ -5,6 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Cline CLI](https://img.shields.io/badge/Cline_CLI-2.5.0-orange)](https://cline.bot/cli)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-green)](https://openclaw.ai)
+[![Cost](https://img.shields.io/badge/Inference_Cost-$0.00-brightgreen)](reports/how-it-was-built.md)
+[![Agents](https://img.shields.io/badge/Parallel_Agents-4-blue)](reports/how-it-was-built.md)
+[![Version](https://img.shields.io/badge/Version-0.3.1-purple)](CHANGELOG.md)
 
 ## Current Status (Feb 2026)
 
@@ -49,17 +52,32 @@ This skill teaches an OpenClaw bot to delegate coding tasks to **Cline CLI 2.0**
 
 ## Architecture
 
+```mermaid
+graph TD
+    A["👨‍💻 Human<br/>Chat Interface"] -->|"Task request"| B
+    B["🌐 OpenClaw<br/>Agent Platform"] -->|"Routes to agent"| C
+    C["🧠 Orchestrator<br/>Claude / GPT / etc"] -->|"Delegates via tmux"| D
+    C -->|"Delegates"| E
+    C -->|"Delegates"| F
+    D["⚡ Cline Agent 1<br/>Project A"]
+    E["⚡ Cline Agent 2<br/>Project B"]
+    F["⚡ Cline Agent N<br/>Project N"]
+    D --> G["📊 Results"]
+    E --> G
+    F --> G
+    G -->|"Summary"| A
+
+    style C fill:#f9f,stroke:#333
+    style D fill:#bbf,stroke:#333
+    style E fill:#bbf,stroke:#333
+    style F fill:#bbf,stroke:#333
 ```
-OpenClaw Bot (orchestrator)
-  │
-  ├── cline -y "task" → /projects/app-a/     [CLINE_DIR isolated]
-  ├── cline -y "task" → /projects/app-b/     [CLINE_DIR isolated]
-  └── cline -y "task" → /projects/app-c/     [CLINE_DIR isolated]
-       │
-       ├── .clineignore (skip node_modules, dist, etc.)
-       ├── Scoped CLINE_COMMAND_PERMISSIONS
-       └── Auth credentials copied from ~/.cline/
-```
+
+Each Cline sub-agent:
+- Runs in headless mode (`-y` / YOLO) with isolated `CLINE_DIR`
+- Has scoped `CLINE_COMMAND_PERMISSIONS` (allow/deny lists)
+- Uses `.clineignore` to skip large directories
+- Auth credentials copied from `~/.cline/`
 
 ## Installation
 

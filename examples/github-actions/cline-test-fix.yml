@@ -21,23 +21,23 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.event.workflow_run.head_branch }}
           fetch-depth: 0
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      
+
       - name: Install Cline CLI
         run: npm install -g cline
-      
+
       - name: Configure Cline
         run: cline auth -p openrouter -k ${{ secrets.OPENROUTER_API_KEY }} -m kwaipilot/kat-coder-pro
-      
+
       - name: Detect Project Type & Run Fix
         run: |
           if [ -f "package.json" ]; then
@@ -47,7 +47,7 @@ jobs:
             pip install -r requirements.txt
             cline -y "Run 'pytest'. Analyze failures. Fix the code. Re-run tests until passing. Do NOT modify test files unless they have bugs." --timeout 600
           fi
-      
+
       - name: Create Fix PR
         if: success()
         run: |

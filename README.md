@@ -3,38 +3,63 @@
 > An [OpenClaw](https://openclaw.ai) skill that lets your AI agent orchestrate [Cline CLI 2.0](https://cline.bot/cli) sub-agents for autonomous coding tasks.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Cline CLI](https://img.shields.io/badge/Cline_CLI-2.0-orange)](https://cline.bot/cli)
+[![Cline CLI](https://img.shields.io/badge/Cline_CLI-2.5.0-orange)](https://cline.bot/cli)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Compatible-green)](https://openclaw.ai)
+
+## Current Status (Feb 2026)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Single agent (headless) | ✅ Working | `-y` mode, sandboxed |
+| Parallel multi-agent (tmux) | ✅ Working | Stagger 2s between launches |
+| Project isolation (CLINE_DIR) | ✅ Working | Must copy auth to each config |
+| .clineignore support | ✅ Working | Essential for Node.js projects |
+| Free model (kat-coder-pro) | ✅ Working | Routes to glm-5, $0 cost |
+| Usage monitoring | ✅ Working | `scripts/cline-monitor.sh` |
+| Cron/scheduled tasks | ✅ Working | `scripts/cline-cron.sh` |
+| OpenClaw heartbeat integration | ✅ Working | Via HEARTBEAT.md |
+
+### Field-Tested Results
+
+Ran a **4-agent parallel security audit** on a production project (FastAPI + Next.js):
+
+| Agent | Focus | Result | Lines | Time |
+|-------|-------|--------|-------|------|
+| Agent 1 | API Security | ✅ 25 findings (3 CRITICAL) | 807 | ~8 min |
+| Agent 2 | Frontend Security | ✅ 1 HIGH, 2 LOW | 290 | ~6 min |
+| Agent 3 | Dependency Audit | ✅ Critical CVEs found | 360 | ~5 min |
+| Agent 4 | Infrastructure | ✅ 12 findings (3 HIGH) | 478 | ~7 min |
+
+**Total cost: $0.00** (free model via Cline OAuth)
 
 ## What is this?
 
-This skill teaches an OpenClaw bot (or any compatible AI agent) to delegate coding tasks to **Cline CLI 2.0** sub-agents running in headless mode. Each sub-agent is sandboxed to a specific project directory with scoped permissions.
+This skill teaches an OpenClaw bot to delegate coding tasks to **Cline CLI 2.0** sub-agents running in headless mode. Each sub-agent is sandboxed to a specific project directory with scoped permissions.
 
 **Key capabilities:**
 - 🔧 Bug fixing, refactoring, and feature development
 - 🧪 Test execution with automatic failure repair
 - 📝 Code review via piped git diffs
-- 📦 Dependency audits and updates
-- 🌐 Browser-based research (API docs, library changes)
+- 📦 Dependency audits and security scanning
 - 🔀 Git workflow management (branching, commits)
 - ⚡ Parallel multi-agent execution via tmux
 - 🔒 Project-scoped sandboxing with command allow/deny lists
+- 📊 Usage monitoring and cost tracking
+- ⏰ Scheduled/cron task execution
 
 ## Architecture
 
 ```
 OpenClaw Bot (orchestrator)
   │
-  ├── cline -y "task" → /projects/app-a/     [sandboxed, isolated config]
-  ├── cline -y "task" → /projects/app-b/     [sandboxed, isolated config]
-  └── cline -y "task" → /projects/app-c/     [sandboxed, isolated config]
+  ├── cline -y "task" → /projects/app-a/     [CLINE_DIR isolated]
+  ├── cline -y "task" → /projects/app-b/     [CLINE_DIR isolated]
+  └── cline -y "task" → /projects/app-c/     [CLINE_DIR isolated]
+       │
+       ├── .clineignore (skip node_modules, dist, etc.)
+       ├── Scoped CLINE_COMMAND_PERMISSIONS
+       └── Auth credentials copied from ~/.cline/
 ```
-
-Each Cline sub-agent:
-- Runs in headless mode (`-y` / YOLO)
-- Has its own isolated configuration directory (`CLINE_DIR`)
-- Is restricted to allowed commands via `CLINE_COMMAND_PERMISSIONS`
-- Cannot push to remotes, run sudo, or access system files without explicit approval
 
 ## Installation
 
@@ -43,18 +68,16 @@ Each Cline sub-agent:
 - **Node.js 20+** (22 recommended)
 - **npm**
 - **git**
-- **tmux** (optional, for parallel agents)
+- **tmux** (for parallel agents)
+- **Python 3** (for monitoring script)
 - **Cline CLI 2.0**: `npm install -g cline`
 
 ### Quick Install
 
 ```bash
-# Clone the skill
-git clone https://github.com/ericmil87/cline-subagents-skill.git
-
-# Run the setup script
-cd cline-subagents-skill
-bash setup/install.sh
+git clone https://github.com/ericmil87/cline-cli-2-orchestration-openclaw-skill.git
+cd cline-cli-2-orchestration-openclaw-skill
+bash install.sh
 ```
 
 ### Manual Install
@@ -63,139 +86,188 @@ bash setup/install.sh
 # 1. Install Cline CLI
 npm install -g cline
 
-# 2. Authenticate (see Authentication section below)
+# 2. Authenticate
 cline auth
 
-# 3. Copy skill to OpenClaw
-cp SKILL.md ~/.openclaw/skills/cline-subagents/SKILL.md
+# 3. Copy skill to OpenClaw skills directory
+mkdir -p ~/clawd/skills/cline-subagents/scripts
+cp SKILL.md ~/clawd/skills/cline-subagents/
+cp scripts/*.sh ~/clawd/skills/cline-subagents/scripts/
+chmod +x ~/clawd/skills/cline-subagents/scripts/*.sh
 
-# 4. Restart OpenClaw
+# 4. Copy auth to isolated configs
+for dir in default project-a project-b project-c; do
+  mkdir -p ~/.cline-configs/$dir
+  cp -r ~/.cline/* ~/.cline-configs/$dir/ 2>/dev/null || true
+done
+
+# 5. Restart OpenClaw
 openclaw gateway restart
 ```
 
-## Authentication
+## ⚠️ Critical Setup Notes (Lessons Learned)
 
-Cline CLI needs authentication to access AI models. This is the trickiest part on headless servers / Docker containers.
+### 1. Always create `.clineignore`
 
-### Method A: SSH Tunnel (Recommended — enables free models)
-
-This gives you access to free models like Kimi K2.5 and MiniMax M2.5 via Cline's OAuth provider.
+Agents **will hang** scanning `node_modules/`. Create this at every project root:
 
 ```bash
-# From your LOCAL machine (with a browser):
-ssh -L 48801:localhost:48801 \
-    -L 48802:localhost:48802 \
-    user@your-server.com
+cat > /your/project/.clineignore << 'EOF'
+node_modules/
+.next/
+dist/
+build/
+venv/
+__pycache__/
+*.log
+.git/
+EOF
+```
 
-# On the server (inside that SSH session):
+### 2. Copy auth to isolated CLINE_DIRs
+
+Isolated configs don't inherit auth from `~/.cline/`:
+
+```bash
+cp -r ~/.cline/* ~/.cline-configs/my-project/ 2>/dev/null || true
+```
+
+### 3. Scope frontend scans explicitly
+
+Large frontend projects timeout. Always specify exact dirs:
+
+```
+"Scan web/app/, web/components/, web/lib/ — SKIP node_modules"
+```
+
+### 4. Stagger parallel launches
+
+Add 2s delay between tmux agent launches to avoid rate limits.
+
+## Authentication
+
+### Method A: SSH Tunnel (enables free models)
+
+```bash
+# From your LOCAL machine:
+ssh -L 48801:localhost:48801 -L 48802:localhost:48802 user@server
+
+# On the server:
 cline auth
-# → Choose "Sign in with Cline"
-# → Copy the URL shown in terminal
-# → Paste in your local browser
-# → OAuth callback tunnels back through SSH → done!
+# → Choose "Sign in with Cline" → Copy URL → Paste in local browser
 ```
 
 ### Method B: Auth Locally, Copy Credentials
 
 ```bash
-# On your local machine:
-npm install -g cline
-cline auth                    # complete in browser
-scp -r ~/.cline/data/ user@your-server.com:~/.cline/data/
+# Local machine:
+npm install -g cline && cline auth
+scp -r ~/.cline/data/ user@server:~/.cline/data/
 ```
 
-### Method C: API Key (No browser needed)
+### Method C: API Key (no browser)
 
 ```bash
-# Headless-friendly, no OAuth required:
 cline auth -p openrouter -k sk-or-v1-YOUR_KEY
-cline auth -p anthropic  -k sk-ant-YOUR_KEY -m claude-sonnet-4-5-20250929
+cline auth -p anthropic -k sk-ant-YOUR_KEY -m claude-sonnet-4-5-20250929
 ```
 
-### Docker: Copy Credentials to Containers
-
-After authenticating on the host:
-
-```bash
-# Option A: docker cp
-docker cp ~/.cline/data/. my-container:/home/node/.cline/data/
-
-# Option B: Volume mount (recommended — add to docker-compose.yml)
-volumes:
-  - ~/.cline/data:/home/node/.cline/data:ro
-```
-
-## Usage
-
-Once installed, your OpenClaw bot can use the skill automatically. Example interactions:
-
-```
-User: "fix the login bug in my-app"
-Bot:  → Spawns Cline sub-agent in /projects/my-app
-      → Creates branch fix/login-bug
-      → Fixes the bug, runs tests, commits
-      → Reports results
-
-User: "run tests on my-app and review the PR on my-api at the same time"
-Bot:  → Spawns 2 parallel Cline agents via tmux
-      → Reports combined results
-
-User: "push the fix to GitHub"
-Bot:  → "⚠️ Push requires approval. Confirm?"
-```
-
-### Helper Scripts
-
-The `setup/scripts/` directory includes utility scripts:
+## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `cline-project.sh` | Run a Cline agent scoped to a project with safety defaults |
-| `cline-multi.sh` | Orchestrate parallel agents via tmux |
+| `scripts/cline-monitor.sh` | Usage tracking, token/cost monitoring, threshold alerts |
+| `scripts/cline-cron.sh` | Scheduled multi-agent task runner (config-driven) |
+| `cline-project.sh` | Single-project agent wrapper with safety defaults |
+| `cline-multi.sh` | Interactive parallel agent orchestrator via tmux |
+
+### Usage Monitoring
 
 ```bash
-# Run a task in a specific project
-./setup/scripts/cline-project.sh my-app "run tests and fix failures" 600
+# Full report
+bash scripts/cline-monitor.sh
 
-# Start parallel agents
-./setup/scripts/cline-multi.sh start
+# JSON output only (for scripting)
+bash scripts/cline-monitor.sh --json
 
-# Check status
-./setup/scripts/cline-multi.sh status
+# Quiet mode (only output on warnings)
+bash scripts/cline-monitor.sh --quiet
+
+# Custom thresholds via env vars
+CLINE_DAILY_TASK_WARN=100 CLINE_DAILY_TOKEN_WARN=1000000 bash scripts/cline-monitor.sh
 ```
 
-## Free Models (as of Feb 2026)
+### Scheduled Tasks (Cron)
 
-| Model | Provider | Free? | Best For |
-|-------|----------|-------|----------|
-| Kimi K2.5 | Cline (OAuth) | ✅ Limited time | Complex reasoning, frontend |
-| MiniMax M2.5 | Cline (OAuth) | ✅ Limited time | Multi-agent, speed (100 tok/s) |
-| Arcee Trinity Large | Cline (OAuth) | ✅ Yes | General coding |
-| DeepSeek V3 | OpenRouter | ✅ Free tier | Refactoring, debugging |
-| Qwen 3 | OpenRouter | ✅ Free tier | Multilingual |
-| Llama 3.3 70B | OpenRouter | ✅ Free tier | General purpose |
+Create a config file and run with `cline-cron.sh`:
 
-> **Note:** Free model promotions are temporary. Check [cline.bot/blog](https://cline.bot/blog) for current availability.
+```conf
+# my-tasks.conf
+name: code-review
+project: /home/ubuntu/my-app
+task: Review recent git changes for bugs and security issues
+timeout: 300
+output: /tmp/results/review.md
+parallel: true
+---
+name: test-check
+project: /home/ubuntu/my-app
+task: Run tests and report any failures
+timeout: 300
+output: /tmp/results/tests.md
+parallel: true
+```
+
+```bash
+bash scripts/cline-cron.sh my-tasks.conf
+```
+
+#### OpenClaw Cron Integration (every 2.5h)
+
+```bash
+# Add to OpenClaw cron (runs every 2.5h)
+openclaw cron add --every 150m --command "bash ~/clawd/skills/cline-subagents/scripts/cline-cron.sh ~/clawd/skills/cline-subagents/examples/periodic-review.conf"
+```
+
+Or via HEARTBEAT.md:
+```markdown
+### Cline Periodic Review
+- Every 2.5h, run: `bash ~/clawd/skills/cline-subagents/scripts/cline-cron.sh ~/clawd/skills/cline-subagents/examples/periodic-review.conf`
+- Check results in /tmp/cline-results/
+- If critical issues found, notify Eric
+```
+
+## Free Models (Feb 2026)
+
+| Model | Provider | Free? | Best For | Notes |
+|-------|----------|-------|----------|-------|
+| **kwaipilot/kat-coder-pro** | Cline (OAuth) | ✅ Yes | General coding | Routes to glm-5, tested & working |
+| Kimi K2.5 | Cline (OAuth) | ✅ Promo | Complex reasoning | May expire |
+| MiniMax M2.5 | Cline (OAuth) | ✅ Promo | Multi-agent, fast | 100 tok/s |
+| Arcee Trinity Large | Cline (OAuth) | ✅ Yes | General | Fallback option |
+| DeepSeek V3 | OpenRouter | ✅ Free tier | Refactoring | |
+| Qwen 3 | OpenRouter | ✅ Free tier | Multilingual | |
+
+### Cline Pricing
+
+| Plan | Cost | Notes |
+|------|------|-------|
+| **Open Source** | $0 forever | Full CLI + multi-agent. **This is what we use.** |
+| Teams | $20/user/mo | Free through Q1 2026. First 10 seats always free. |
+| Enterprise | Custom | SSO, SLA, VPC |
+
+AI inference is always BYOK (bring your own key) or use free models. Cline doesn't charge for AI usage.
 
 ## Configuration
 
-### Project Permissions
+### Command Permissions
 
-Each project gets scoped command permissions:
-
-```bash
-export CLINE_COMMAND_PERMISSIONS='{
-  "allow": ["npm *", "git *", "node *", "cat *", "ls *", "grep *"],
-  "deny": ["rm -rf /", "sudo *", "git push *"],
+```json
+{
+  "allow": ["npm *", "git *", "node *", "cat *", "ls *", "grep *", "find *"],
+  "deny": ["rm -rf /", "sudo *", "git push *", "curl * | bash"],
   "allowRedirects": true
-}'
-```
-
-### Isolated Configs
-
-```bash
-# Each project has its own Cline config
-export CLINE_DIR=~/.cline-configs/my-app
+}
 ```
 
 ### Security Model
@@ -207,40 +279,69 @@ export CLINE_DIR=~/.cline-configs/my-app
 | Run npm/node/git | ✅ Allowed | Configurable |
 | Delete files | ⚠️ Restricted | User approval |
 | Push to remote | 🚫 Denied | User approval |
-| System commands (sudo) | 🚫 Denied | Never in sub-agent |
-| Access other projects | 🚫 Denied | User approval |
+| System commands (sudo) | 🚫 Denied | Never |
 
 ## Project Structure
 
 ```
-cline-subagents-skill/
-├── SKILL.md                    # Runtime skill (goes in bot's skills dir)
-├── README.md                   # This file
-├── LICENSE                     # MIT License
-└── setup/
-    ├── install.sh              # Automated setup script
-    └── scripts/
-        ├── cline-project.sh    # Single-project agent wrapper
-        └── cline-multi.sh      # Multi-agent tmux orchestrator
+cline-cli-2-orchestration-openclaw-skill/
+├── SKILL.md                     # Runtime skill for OpenClaw
+├── README.md                    # This file
+├── LICENSE                      # MIT
+├── install.sh                   # Automated installer
+├── cline-project.sh             # Single-project agent wrapper
+├── cline-multi.sh               # Interactive multi-agent orchestrator
+├── .clineignore                 # Template ignore file
+├── scripts/
+│   ├── cline-monitor.sh         # Usage monitoring & alerts
+│   └── cline-cron.sh            # Scheduled task runner
+└── examples/
+    ├── security-audit.conf      # 4-agent security audit config
+    └── periodic-review.conf     # 2.5h periodic review config
 ```
+
+## Roadmap
+
+### ✅ Done
+- [x] SKILL.md with field-tested instructions
+- [x] Parallel multi-agent via tmux
+- [x] Project isolation with CLINE_DIR
+- [x] .clineignore support
+- [x] Usage monitoring script
+- [x] Cron/scheduled task runner
+- [x] Example configs (security audit, periodic review)
+- [x] Free model configuration (kat-coder-pro)
+
+### 🔜 Next Steps
+- [ ] Auto-detect project type and adjust .clineignore accordingly
+- [ ] Result aggregation script (merge agent reports into executive summary)
+- [ ] Slack/Telegram notification on task completion
+- [ ] Token budget per agent (kill if exceeding limit)
+- [ ] Agent retry logic with fallback models
+- [ ] CI/CD integration examples (GitHub Actions, GitLab CI)
+- [ ] Docker compose for containerized agents
+- [ ] Web dashboard for monitoring agent runs
+- [ ] Support for `.clinerules` per-project behavior config
+- [ ] OpenClaw cron native integration (auto-register tasks)
 
 ## Contributing
 
-Contributions welcome! Please open an issue or PR on GitHub.
+Contributions welcome! Please open an issue or PR.
 
-Areas where help is appreciated:
-- Additional model provider configurations
+**Priority areas:**
 - CI/CD pipeline examples
-- Better token refresh automation
-- Windows support improvements
+- Token budget enforcement
+- Better retry/fallback logic
+- Windows/macOS testing
 
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
 
-## Author
+## Authors
 
-**Eric Milfont** — [@ericmil87](https://github.com/ericmil87) — [eric.milfont.net](https://eric.milfont.net)
+- **Eric Milfont** — [@ericmil87](https://github.com/ericmil87)
+- **Cláudio Milfont** — [@claudiomil87](https://github.com/claudiomil87) (AI collaborator)
 
 ---
 

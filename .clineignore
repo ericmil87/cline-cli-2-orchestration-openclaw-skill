@@ -1,0 +1,11 @@
+node_modules/
+.next/
+dist/
+build/
+*.log
+.git/
+__pycache__/
+venv/
+.venv/
+coverage/
+.nyc_output/

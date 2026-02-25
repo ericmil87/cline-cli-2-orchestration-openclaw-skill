@@ -100,6 +100,32 @@ See Model Selection below.
 
 ---
 
+## Critical Lessons (Field-Tested)
+
+### ALWAYS create .clineignore for projects with node_modules
+Agents WILL scan node_modules/ and hang or timeout. Before ANY task:
+```bash
+# Create .clineignore at project root if it doesn't exist
+echo -e "node_modules/\n.next/\ndist/\nvenv/\n__pycache__/" > /project/.clineignore
+```
+
+### ALWAYS copy auth credentials to isolated CLINE_DIRs
+Isolated configs (~/.cline-configs/*) don't inherit auth from ~/.cline/:
+```bash
+cp -r ~/.cline/* ~/.cline-configs/my-project/ 2>/dev/null || true
+```
+
+### Stagger parallel agent launches
+Rate limits hit when all agents start simultaneously. Add 2s delay between launches.
+
+### Frontend scans need explicit directory scoping
+Large frontend projects timeout. Always specify exact subdirectories:
+```
+"Scan web/app/, web/components/, web/lib/ — SKIP node_modules"
+```
+
+---
+
 ## How to Execute Tasks
 
 ### Single Agent — Basic Pattern

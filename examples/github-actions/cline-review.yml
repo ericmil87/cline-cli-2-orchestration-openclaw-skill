@@ -1,0 +1,62 @@
+# .github/workflows/cline-review.yml
+# Automated code review on every PR using Cline CLI
+#
+# Prerequisites:
+# - CLINE_AUTH_TOKEN secret (from ~/.cline/data/secrets.json)
+# - Or: OPENROUTER_API_KEY secret for API key auth
+
+name: Cline Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Install Cline CLI
+        run: npm install -g cline
+      
+      - name: Configure Cline
+        run: |
+          mkdir -p ~/.cline/data
+          # Option A: Use pre-configured auth token
+          # echo '${{ secrets.CLINE_AUTH_DATA }}' > ~/.cline/data/secrets.json
+          
+          # Option B: Use API key
+          cline auth -p openrouter -k ${{ secrets.OPENROUTER_API_KEY }} -m kwaipilot/kat-coder-pro
+      
+      - name: Review PR Changes
+        run: |
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD)
+          echo "$DIFF" | cline -y \
+            "Review these code changes for: 1) Security vulnerabilities, 2) Performance issues, 3) Missing error handling, 4) Code quality. Be concise. Format as markdown." \
+            --timeout 300 \
+            --json > /tmp/review.json
+          
+          # Extract review text
+          cat /tmp/review.json | jq -r '.text // .content // "No review generated"' > /tmp/review.md
+      
+      - name: Post Review Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('/tmp/review.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🤖 Cline Code Review\n\n${review}\n\n---\n*Automated review by Cline CLI 2.0*`
+            });

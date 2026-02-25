@@ -1,0 +1,83 @@
+# .github/workflows/cline-security-audit.yml
+# Weekly security audit using Cline CLI multi-agent
+#
+# Runs every Monday at 9am UTC, or manually
+
+name: Cline Security Audit
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Monday 9am UTC
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      
+      - name: Install Cline CLI
+        run: npm install -g cline
+      
+      - name: Configure Cline
+        run: cline auth -p openrouter -k ${{ secrets.OPENROUTER_API_KEY }} -m kwaipilot/kat-coder-pro
+      
+      - name: Create .clineignore
+        run: |
+          cat > .clineignore << 'EOF'
+          node_modules/
+          .next/
+          dist/
+          build/
+          venv/
+          __pycache__/
+          .git/
+          EOF
+      
+      - name: Run Security Audits (Sequential)
+        run: |
+          mkdir -p security-audit
+          
+          echo "🔐 Agent 1: Code Security..."
+          cline -y "Security audit: scan for auth flaws, injection risks, CORS issues, hardcoded secrets, input validation gaps. Write Markdown report to security-audit/code-security.md with severity levels." --timeout 600 || true
+          
+          echo "📦 Agent 2: Dependency Audit..."
+          cline -y "Dependency audit: check all package manifests for known CVEs, outdated packages, unpinned versions. Write Markdown report to security-audit/dependency-audit.md with severity levels." --timeout 600 || true
+          
+          echo "🏗️ Agent 3: Config Security..."
+          cline -y "Config security: check Dockerfiles, CI configs, env handling, exposed ports, secrets management. Write Markdown report to security-audit/config-security.md with severity levels." --timeout 600 || true
+      
+      - name: Generate Summary
+        run: |
+          echo "# Security Audit Summary — $(date -u +%Y-%m-%d)" > security-audit/SUMMARY.md
+          echo "" >> security-audit/SUMMARY.md
+          for f in security-audit/*.md; do
+            [ "$f" = "security-audit/SUMMARY.md" ] && continue
+            echo "## $(basename "$f" .md)" >> security-audit/SUMMARY.md
+            head -20 "$f" >> security-audit/SUMMARY.md 2>/dev/null || echo "*(audit failed)*" >> security-audit/SUMMARY.md
+            echo "" >> security-audit/SUMMARY.md
+          done
+      
+      - name: Upload Audit Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-${{ github.run_number }}
+          path: security-audit/
+          retention-days: 90
+      
+      - name: Create Issue if Critical Findings
+        run: |
+          if grep -qi "CRITICAL" security-audit/*.md 2>/dev/null; then
+            gh issue create \
+              --title "🚨 Security Audit: Critical findings ($(date -u +%Y-%m-%d))" \
+              --body "$(cat security-audit/SUMMARY.md)" \
+              --label "security,priority:high"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

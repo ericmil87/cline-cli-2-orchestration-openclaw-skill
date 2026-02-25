@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.1] - 2026-02-25
+
+### Added
+- `CHANGELOG.md` — Comprehensive changelog covering all releases (v0.1.0 → v0.3.0)
+- `reports/how-it-was-built.md` — Technical report on how this project was built (LLMs, tools, architecture, costs)
+
+### Changed
+- Local skill synced with latest repo state
+
 ## [0.3.0] - 2026-02-25
 
 ### Added

@@ -371,6 +371,22 @@ You (to user):
 }
 ```
 
+### Aggregating Results — Executive Summary
+
+After multi-agent runs, generate a unified summary:
+```bash
+bash scripts/cline-summarize.sh ~/project/security-audit/
+```
+
+### OpenClaw Cron — Scheduled Tasks
+
+For periodic automated tasks, see `references/openclaw-cron-setup.md`.
+Quick start:
+```bash
+openclaw cron add --name "cline-review" --every 150m --session isolated \
+  --message "Run periodic code review via Cline" --announce --channel telegram
+```
+
 ### .clinerules — Per-Project Agent Instructions
 
 Create `.clinerules` at the project root to give agents project-specific context:

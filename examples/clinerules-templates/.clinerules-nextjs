@@ -1,0 +1,33 @@
+# Next.js/React Project Rules
+# Copy this to your project root as .clinerules
+
+## Code Style
+- Use TypeScript for all new files
+- Prefer functional components with hooks
+- Use Tailwind CSS for styling — no inline styles or CSS modules
+- Import order: React → external libs → internal components → styles
+
+## Architecture
+- Pages in app/ (App Router) or pages/ (Pages Router)
+- Shared components in components/
+- Utility functions in lib/
+- API calls centralized in lib/api.ts
+
+## Security
+- Never store secrets in client-side code
+- Use NEXT_PUBLIC_ prefix only for truly public values
+- Sanitize all user input before rendering
+- Prefer HttpOnly cookies over localStorage for auth tokens
+
+## Performance
+- Use next/image for all images
+- Lazy load heavy components with dynamic()
+- Minimize client-side JavaScript — prefer Server Components
+
+## Testing
+- Tests alongside components: Component.test.tsx
+- Use React Testing Library, not Enzyme
+
+## Git
+- Create feature branches from main
+- Commit messages: type(scope): description

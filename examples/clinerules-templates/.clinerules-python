@@ -1,0 +1,29 @@
+# Python/FastAPI Project Rules
+# Copy this to your project root as .clinerules
+
+## Code Style
+- Use type hints on all function signatures
+- Follow PEP 8 conventions
+- Use async/await for I/O operations
+- Prefer Pydantic models for data validation
+
+## Architecture
+- Routers in api/routers/, services in api/services/, models in api/models/
+- All database operations go through SQLAlchemy async sessions
+- Use dependency injection via FastAPI Depends()
+
+## Security
+- Never hardcode secrets — use environment variables
+- Always validate and sanitize user input
+- Use parameterized queries — never string-format SQL
+- JWT tokens must be validated on every protected endpoint
+
+## Testing
+- Tests go in tests/ directory
+- Use pytest with async support (pytest-asyncio)
+- Mock external services, never call real APIs in tests
+
+## Git
+- Create feature branches from main
+- Commit messages: type(scope): description
+- Never commit .env files or secrets
